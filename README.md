@@ -1,9 +1,4 @@
-
-				CAS Tools 1.31
-
-		     Copyright 2001-2016 Vincent van Dam
-			   (vincentd@erg.verweg.com)
-
+# CAS Tools
 
 This is a set of tools which can read sampled MSX tapes and convert them to
 the standard .cas format and back to .wav samples. This package consist of
@@ -46,30 +41,24 @@ This should be enough info to get you started in converting your old cassette
 tapes to .cas files. Good luck!
 
 
-                               Version History
-                               ---------------
+### Version History
 
-[2016/04/11] 1.31
-----------------
+#### 1.31 (2016/04/11)
 * all: added support for 64 bit systems (thanks to Peter Koellner)
 
-[2007/12/08] 1.3
-----------------
+#### 1.3 (2007/12/08)
 * cas2wav: allow custom gaptime between blocks.
 
-[2007/05/04] 1.2
-----------------
+#### 1.2 (2007/05/04)
 * cas2wav: added multi cpu support
 * wav2cas: added multi cpu support
 * casdir: compile warnings fixed
 Credits go to Ramones for the applied changes, thanks!
 
-[2002/06/09] 1.1
-----------------
+#### 1.1 (2002/06/09)
 * cas2wav: increased gap between data and headers
 * wav2cas: fixed bug in wav reading
 * wav2cas: changed default phase 
 
-[2001/12/03] 1.0
-----------------
+#### 1.0 (2001/12/03)
 * first public release
