@@ -36,11 +36,11 @@
 #endif
 
 #ifndef uint32_t
-#define uint32_t unsinged long
+#define uint32_t unsigned long
 #endif
 
 #ifndef uint16_t
-#define uint16_t unsinged short
+#define uint16_t unsigned short
 #endif
 
 #ifndef int32_t
