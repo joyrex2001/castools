@@ -14,7 +14,8 @@ endif
 
 CC = gcc
 CPU = $(shell ./${cpuprogram})
-CFLAGS = -O2 -Wall -fomit-frame-pointer -lm
+CFLAGS = -O2 -Wall -Wno-unused-result -fomit-frame-pointer
+CLIBS = -lm
 
 all: clean cpu cas2wav wav2cas casdir
 
@@ -22,13 +23,13 @@ cpu:
 	$(CC)  cpu.c -o $(cpuprogram)
 
 cas2wav : cas2wav.c
-	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(cas2wav_e)
+	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(cas2wav_e) $(CLIBS)
 
 wav2cas : wav2cas.c
-	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(wav2cas_e)
+	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(wav2cas_e) $(CLIBS)
 
 casdir : casdir.c		
-	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(casdir_e)
+	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(casdir_e) $(CLIBS)
 
 clean:
 	rm -f $(cas2wav_e)
