@@ -1,4 +1,4 @@
-.PHONY: all clean cpu cas2wav wav2cas casdir
+.PHONY: all install clean cpu cas2wav wav2cas casdir
 
 ifneq ($(WINDIR),)
 cas2wav_e   = cas2wav.exe
@@ -19,17 +19,23 @@ CLIBS = -lm
 
 all: clean cpu cas2wav wav2cas casdir
 
-cpu:	
-	$(CC)  cpu.c -o $(cpuprogram)
+cpu: cpu.c
+	$(CC) cpu.c -o $(cpuprogram)
 
-cas2wav : cas2wav.c
+cas2wav: cas2wav.c
 	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(cas2wav_e) $(CLIBS)
 
-wav2cas : wav2cas.c
+wav2cas: wav2cas.c
 	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(wav2cas_e) $(CLIBS)
 
-casdir : casdir.c		
+casdir: casdir.c		
 	$(CC) $(CFLAGS) -DBIGENDIAN=${CPU} $^ -o $(casdir_e) $(CLIBS)
+
+install: all
+	cp $(cas2wav_e) $(wav2cas_e) $(casdir_e) /usr/local/bin
+
+uninstall:
+	rm -f /usr/local/bin/$(cas2wav_e) /usr/local/bin/$(wav2cas_e) /usr/local/bin/$(casdir_e)
 
 clean:
 	rm -f $(cas2wav_e)
