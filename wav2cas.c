@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <memory.h>
 
@@ -29,22 +30,6 @@
 #define true   1
 #define false  0
 #define bool   int
-#endif
-
-#ifndef int8
-#define int8 signed char
-#endif
-
-#ifndef uint32_t
-#define uint32_t unsigned long
-#endif
-
-#ifndef uint16_t
-#define uint16_t unsigned short
-#endif
-
-#ifndef int32_t
-#define int32_t long 
 #endif
 
 #define THRESHOLD_SILENCE   100
@@ -57,7 +42,7 @@
 #define BIGENDIANINT(value)    ( ((value & 0x000000FF) << 24) | \
                                  ((value & 0x0000FF00) << 8)  | \
                                  ((value & 0x00FF0000) >> 8)  | \
-                                 ((value & 0xFF000000) >> 24) ) 
+                                 ((value & 0xFF000000) >> 24) )
 #define	BIGENDIANLONG(value)   BIGENDIANINT(value) // I suppose Long=int
 #else
 #define BIGENDIANSHORT(value) value
@@ -66,7 +51,7 @@
 #endif
 
 /* default arguments */
-int   threshold = 5;     /* amplitude threshold  */ 
+int   threshold = 5;     /* amplitude threshold  */
 bool  envelope  = 2;     /* envelope correction  */
 bool  normalize = false; /* amplitude normalize  */
 bool  phase     = true;  /* phase shift */
@@ -74,7 +59,7 @@ float window    = 1.5;   /* window factor */
 
 /* header definitions of a wav file */
 typedef struct
-{	
+{
   char     RiffID[4];
   uint32_t RiffSize;
   char     WaveID[4];
@@ -97,7 +82,7 @@ typedef struct
 
 
 /* Read wav file for tape image */
-int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
+int tapeRead(char* szFileName, int8_t** pBuffer, int32_t *size)
 {
   FILE* wav_file;
   WAVE_HEADER header;
@@ -105,13 +90,13 @@ int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
 
   int  adder;
   int32_t i,j,pos;
-  int8 data;
+  int8_t data;
   bool found;
-  
+
   if ((wav_file=fopen(szFileName,"rb"))==NULL) return -1;
 
   fread(&header,sizeof(header),1,wav_file);
-  
+
   /* Make header compatible with PPC micro */
   #if (BIGENDIAN)
   header.RiffSize       = BIGENDIANLONG(header.RiffSize);
@@ -123,17 +108,17 @@ int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
   header.nBlockAlign    = BIGENDIANSHORT(header.nBlockAlign);
   header.wBitsPerSample = BIGENDIANSHORT(header.wBitsPerSample);
   #endif
-  
+
   /* Determine how many bytes to skip in reading file for 8-bit mono */
   adder=header.nChannels*(header.wBitsPerSample/8);
-  
+
   /* Search for data tag */
   found = false;
   pos = ftell(wav_file);
   while(fread(&block,sizeof(block),1,wav_file))
     if (!strncmp(block.DataID,"data",4)) {
       *size=BIGENDIANLONG(block.nDataBytes)/adder ;
-      *pBuffer=(int8*)malloc(*size*sizeof(int8));
+      *pBuffer=(int8_t*)malloc(*size*sizeof(int8_t));
       found = true;
       break;
     } else {
@@ -145,7 +130,7 @@ int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
     fprintf(stderr,"Incorrect wav header!\n");
     return -1;
   }
-  
+
   if (*pBuffer==NULL) {
     fprintf(stderr,"Not enough memory!\n");
     return -1;
@@ -161,8 +146,8 @@ int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
   /* Read file */
   for (i=0;i<(*size);i++) {
 
-    for (j=1; j<adder; j++) fread(&data,sizeof(int8),1,wav_file);    
-    fread(&data,sizeof(int8),1,wav_file);
+    for (j=1; j<adder; j++) fread(&data,sizeof(int8_t),1,wav_file);
+    fread(&data,sizeof(int8_t),1,wav_file);
     if (header.wBitsPerSample==8) data^=128;
     if (phase) data=-data;
     (*pBuffer)[i]=data;
@@ -175,7 +160,7 @@ int tapeRead(char* szFileName, int8** pBuffer, int32_t *size)
 
 
 /* correct envelope and denoise signal */
-void correctEnvelope(int8 **buffer,int32_t size)
+void correctEnvelope(int8_t **buffer,int32_t size)
 {
   int32_t i;
   for (i=1;i<size-1;i++)
@@ -188,11 +173,11 @@ void correctEnvelope(int8 **buffer,int32_t size)
 
 
 /* make signal as loud as possible */
-void normalizeAmplitude(int8 **buffer,int32_t size)
+void normalizeAmplitude(int8_t **buffer,int32_t size)
 {
   int32_t i;
   int  maximum=0;
-  for (i=0;i<size;i++) 
+  for (i=0;i<size;i++)
     if (abs((*buffer)[i])>maximum) maximum=abs((*buffer)[i]);
   for (i=0;i<size;i++) (*buffer)[i]*=127/(float)maximum;
 }
@@ -200,13 +185,13 @@ void normalizeAmplitude(int8 **buffer,int32_t size)
 
 
 /* detect silence */
-bool isSilence(int8 *buffer,int32_t index,int32_t size)
+bool isSilence(int8_t *buffer,int32_t index,int32_t size)
 {
   int32_t silent=0;
 
   while (index<size && silent<THRESHOLD_SILENCE) {
 
-    if ((buffer[index] >= threshold || 
+    if ((buffer[index] >= threshold ||
 	 buffer[index] <= -threshold )) return false;
 
     silent++; index++;
@@ -218,17 +203,17 @@ bool isSilence(int8 *buffer,int32_t index,int32_t size)
 
 
 /* skip silent parts */
-void skipSilence(int8 *buffer, int32_t *index, int32_t size)
+void skipSilence(int8_t *buffer, int32_t *index, int32_t size)
 {
-  while(*index<size && 
-	(buffer[*index] <= threshold && 
+  while(*index<size &&
+	(buffer[*index] <= threshold &&
 	 buffer[*index] >= -threshold )) (*index)++;
 }
 
 
 
 /* get the number of bytes of one pulse */
-int32_t getPulseWidth(int8 *buffer, int32_t *index, int32_t size)
+int32_t getPulseWidth(int8_t *buffer, int32_t *index, int32_t size)
 {
   int min = 1000;
   int max =-1000;
@@ -245,7 +230,7 @@ int32_t getPulseWidth(int8 *buffer, int32_t *index, int32_t size)
       if (prev==min) {
 
 	if (pt-min>=threshold) {
-	
+
 	  while(width>1) {
 
 	    if (buffer[*index]>=pt-(pt-min)/2) break;
@@ -283,7 +268,7 @@ int32_t getPulseWidth(int8 *buffer, int32_t *index, int32_t size)
 
 
 /* detect headers */
-bool isHeader(int8 *buffer, int32_t index, int32_t size)
+bool isHeader(int8_t *buffer, int32_t index, int32_t size)
 {
 
   int32_t width;
@@ -294,7 +279,7 @@ bool isHeader(int8 *buffer, int32_t index, int32_t size)
   getPulseWidth(buffer,&index,size);
 
   while (index<size && pulses<THRESHOLD_HEADER ) {
-    
+
     width = getPulseWidth(buffer,&index,size);
     if (!biggest) biggest=width;
     if (width>(float)biggest*window) return false;
@@ -310,7 +295,7 @@ bool isHeader(int8 *buffer, int32_t index, int32_t size)
 
 
 /* skip header and return average with of a short pulse */
-float skipHeader(int8 *buffer, int32_t *index, int32_t size)
+float skipHeader(int8_t *buffer, int32_t *index, int32_t size)
 {
 
   int32_t  width;
@@ -321,13 +306,13 @@ float skipHeader(int8 *buffer, int32_t *index, int32_t size)
   getPulseWidth(buffer,index,size);
 
   while (*index<size) {
-    
+
     width=getPulseWidth(buffer,index,size);
 
     if (average && width>(float)average*window ) {
- 
-	*index-=width; 
-	return average; 
+
+	*index-=width;
+	return average;
     }
 
     /* average=(count*average+width)/++count; */
@@ -340,7 +325,7 @@ float skipHeader(int8 *buffer, int32_t *index, int32_t size)
 
 
 /* read a byte from wave data */
-int readByte(int8 *buffer, int32_t *index, int32_t size, float average)
+int readByte(int8_t *buffer, int32_t *index, int32_t size, float average)
 {
   int  bit;
   int32_t width;
@@ -368,7 +353,7 @@ int readByte(int8 *buffer, int32_t *index, int32_t size, float average)
 
   /* two stop bits (four short pulses) */
   for (i=0;i<3;i++) {
-    
+
     getPulseWidth(buffer,index,size);
     if (isSilence(buffer,*index,size)) return -1;
   }
@@ -389,14 +374,14 @@ void showUsage(char *progname)
 	 " -e   level of envelope correction (default:%d)\n"
 	 " -t   threshold factor (default:%d)\n"
 	 ,progname,window,envelope,threshold);
-}  
+}
 
 
 
 int main(int argc, char* argv[])
 {
-  FILE  *output;
-  int8  *buffer;
+  FILE *output;
+  int8_t *buffer;
   int32_t frequency,size,index,written;
   float average;
   int   data,i,j;
@@ -430,7 +415,7 @@ int main(int argc, char* argv[])
 
     if (ifile==NULL) { ifile=argv[i]; continue; }
     if (ofile==NULL) { ofile=argv[i]; continue; }
-    
+
     fprintf(stderr,"%s: invalid option\n",argv[0]);
     exit(1);
   }
@@ -440,7 +425,7 @@ int main(int argc, char* argv[])
   /* read the sample data and store it in buffer */
   frequency=tapeRead(ifile,&buffer,&size);
   if (frequency<0) {
-    
+
     fprintf(stderr,"%s: failed reading %s\n",argv[0],ifile);
     exit(1);
   }
@@ -453,14 +438,14 @@ int main(int argc, char* argv[])
   }
 
   /* work on signal first */
-  if (normalize) normalizeAmplitude(&buffer,size);  
+  if (normalize) normalizeAmplitude(&buffer,size);
   for(i=0;i<envelope;i++) correctEnvelope(&buffer,size);
 
   /* let's do it */
   printf("Decoding audio data...\n");
 
   /* sample probably starts with some silence before the data, skip it */
-  written=index=0; 
+  written=index=0;
   skipSilence(buffer,&index,size);
 
   header=false;
@@ -469,17 +454,17 @@ int main(int argc, char* argv[])
 
     /* detect silent parts and skip them */
     if (isSilence(buffer,index,size)) {
-      
+
       printf("[%.1f] skipping silence\n",(double)index/frequency);
       skipSilence(buffer,&index,size);
     }
-    
+
     /* detect header and proces the data block followed */
     if (isHeader(buffer,index,size)) {
 
       printf("[%.1f] header detected\n",(double)index/frequency);
       average=skipHeader(buffer,&index,size);
-      
+
       /* write .cas header if none already written */
       if (!header) {
 
@@ -503,13 +488,13 @@ int main(int argc, char* argv[])
 	else break;
       }
 
-    } else { 
+    } else {
 
       /* data found without a header, skip it */
-      printf("[%.1f] skipping headerless data\n",(double)index/frequency); 
+      printf("[%.1f] skipping headerless data\n",(double)index/frequency);
       while(!isSilence(buffer,index,size) && index<size ) index++;
     }
-      
+
   }
 
   fclose(output);

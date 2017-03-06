@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <memory.h>
 #include <math.h>
 
@@ -31,14 +32,6 @@
 #define bool   int
 #endif
 
-#ifndef uint32_t
-#define uint32_t unsigned long
-#endif
-
-#ifndef uint16_t
-#define uint16_t unsigned short
-#endif
-
 /* CPU type defines */
 #if (BIGENDIAN)
 #define BIGENDIANSHORT(value)  ( ((value & 0x00FF) << 8) | \
@@ -46,7 +39,7 @@
 #define BIGENDIANINT(value)    ( ((value & 0x000000FF) << 24) | \
                                  ((value & 0x0000FF00) << 8)  | \
                                  ((value & 0x00FF0000) >> 8)  | \
-                                 ((value & 0xFF000000) >> 24) ) 
+                                 ((value & 0xFF000000) >> 24) )
 #define	BIGENDIANLONG(value)   BIGENDIANINT(value) // I suppose Long=int
 #else
 #define BIGENDIANSHORT(value) value
@@ -67,7 +60,7 @@
 #define SHORT_HEADER      4000
 
 /* output settings */
-#define OUTPUT_FREQUENCY  43200 
+#define OUTPUT_FREQUENCY  43200
 
 /* default output baudrate */
 int BAUDRATE = 1200;
@@ -126,7 +119,7 @@ void writePulse(FILE *output,uint32_t f)
   double length = OUTPUT_FREQUENCY/(BAUDRATE*(f/1200));
   double scale  = 2.0*M_PI/(double)length;
 
-  for (n=0;n<(uint32_t)length;n++) 
+  for (n=0;n<(uint32_t)length;n++)
     putc( (char)(sin((double)n*scale)*127)^128, output);
 }
 
@@ -182,7 +175,7 @@ void writeData(FILE* input,FILE* output,uint32_t *position,bool* eof)
 
   *eof=false;
   while ((read=fread(buffer,1,8,input))==8) {
-    
+
     if (!memcmp(buffer,HEADER,8)) return;
 
     writeByte(output,buffer[0]);
@@ -206,7 +199,7 @@ void showUsage(char *progname)
          " -2   use 2400 baud as output baudrate\n"
          " -s   define gap time (in seconds) between blocks (default 2)\n"
 	 ,progname);
-}  
+}
 
 
 
@@ -218,7 +211,7 @@ int main(int argc, char* argv[])
   int  stime = -1;
   bool eof;
   char buffer[10];
-  
+
   char *ifile = NULL;
   char *ofile = NULL;
 
@@ -244,7 +237,7 @@ int main(int argc, char* argv[])
 
     if (ifile==NULL) { ifile=argv[i]; continue; }
     if (ofile==NULL) { ofile=argv[i]; continue; }
-    
+
     fprintf(stderr,"%s: invalid option\n",argv[0]);
     exit(1);
   }
@@ -256,19 +249,19 @@ int main(int argc, char* argv[])
     fprintf(stderr,"%s: failed opening %s\n",argv[0],argv[1]);
     exit(1);
   }
-  
+
   if ((output=fopen(ofile,"wb"))==NULL) {
     fprintf(stderr,"%s: failed writing %s\n",argv[0],argv[2]);
     exit(1);
   }
-  
+
   /* write initial .wav header */
   fwrite(&waveheader,sizeof(waveheader),1,output);
 
   position=0;
   /* search for a header in the .cas file */
   while (fread(buffer,1,8,input)==8) {
-    
+
     if (!memcmp(buffer,HEADER,8)) {
 
       /* it probably works fine if a long header is used for every */
@@ -316,7 +309,7 @@ int main(int argc, char* argv[])
 	}
 
       }
-      else { 
+      else {
 
 	printf("unknown file type: using long header\n");
 	fseek(input,position,SEEK_SET);
@@ -326,7 +319,7 @@ int main(int argc, char* argv[])
       }
 
     } else {
-      
+
       /* should not occur */
       fprintf(stderr,"skipping unhandled data\n");
       position++;
@@ -347,8 +340,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-
-
-
-
-
