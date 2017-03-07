@@ -14,7 +14,7 @@ endif
 
 CC = gcc
 CPU = $(shell ./${cpuprogram})
-CFLAGS = -O2 -Wall -Wno-unused-result -fomit-frame-pointer
+CFLAGS = -O2 -Wall -fomit-frame-pointer
 CLIBS = -lm
 
 all: clean cpu cas2wav wav2cas casdir
