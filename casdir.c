@@ -90,21 +90,26 @@ int main(int argc, char* argv[])
 	else if (!memcmp(&buffer,BIN,10)) {
 	  
 	  fread(filename,1,6,ifile); next=NEXT_BINARY;
+	  position += 16;
 	}
 
 	else if (!memcmp(&buffer,BASIC,10)) {
 	  
 	  fread(filename,1,6,ifile); next=NEXT_DATA;
 	  printf("%.6s  basic\n", filename);
+	  position += 16;
 	}
       
 	else  printf("------  custom  %.6x\n",(int)position);
     
       }
 
+      position += 8;
+    } else {
+      ++position;
     }
 	
-    fseek(ifile, ++position, SEEK_SET);
+    fseek(ifile, position, SEEK_SET);
       
   }
     
