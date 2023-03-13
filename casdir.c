@@ -19,6 +19,7 @@
 /**************************************************************************/
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <memory.h>
 
@@ -34,11 +35,13 @@ char BASIC[10] = { 0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3 };
 int main(int argc, char* argv[])
 {
   FILE *ifile;
-  char buffer[10];
+  union {
+    uint8_t data[10];
+    struct binary_header_t {
+      uint16_t start, stop, exec;
+    } binary_header;
+  } buffer;
   char filename[6];
-  int  start;
-  int  stop;
-  int  exec;
   long position;
   int  next = NEXT_NONE;
 
@@ -55,27 +58,27 @@ int main(int argc, char* argv[])
   }
 
   position=0;
-  while (fread(buffer,1,8,ifile)==8) {
+  while (fread(&buffer,1,8,ifile)==8) {
     
-    if (!memcmp(buffer,HEADER,8)) {
+    if (!memcmp(&buffer,HEADER,8)) {
       
-      if (fread(buffer,1,10,ifile)==10) {
+      if (fread(&buffer,1,10,ifile)==10) {
 	
         if (next==NEXT_BINARY) {
 	
-	  fseek(ifile,position+8,SEEK_SET);
-	  start = fgetc(ifile)+fgetc(ifile)*256;
-	  stop  = fgetc(ifile)+fgetc(ifile)*256;
-	  exec  = fgetc(ifile)+fgetc(ifile)*256;
-	  if (!exec) exec=start;
+	  if (!buffer.binary_header.exec)
+            buffer.binary_header.exec=buffer.binary_header.start;
 	  
-	  printf("%.6s  binary  %.4x,%.4x,%.4x\n",filename,start,stop,exec);
+	  printf("%.6s  binary  %.4x,%.4x,%.4x\n",filename,
+		  buffer.binary_header.start,
+		  buffer.binary_header.stop,
+		  buffer.binary_header.exec);
 	  next=NEXT_NONE;
 	}
 	  
 	else if (next==NEXT_DATA) next=NEXT_NONE;
 	
-	else if (!memcmp(buffer,ASCII,10)) {
+	else if (!memcmp(&buffer,ASCII,10)) {
 	  
 	  fread(filename,1,6,ifile);
 	  printf("%.6s  ascii\n",filename);
@@ -84,12 +87,12 @@ int main(int argc, char* argv[])
 	  position=ftell(ifile);
 	} 
       
-	else if (!memcmp(buffer,BIN,10)) {
+	else if (!memcmp(&buffer,BIN,10)) {
 	  
 	  fread(filename,1,6,ifile); next=NEXT_BINARY;
 	}
 
-	else if (!memcmp(buffer,BASIC,10)) {
+	else if (!memcmp(&buffer,BASIC,10)) {
 	  
 	  fread(filename,1,6,ifile); next=NEXT_DATA;
 	  printf("%.6s  basic\n", filename);
