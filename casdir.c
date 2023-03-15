@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
       
 	    else {
 
-	      printf("------  custom  %.6x\n",(int)position-8);
+	      printf("------  custom  %.6x\n",(int)position);
 	      fseek(ifile, -2, SEEK_CUR);
 	      position += 8;
 	    }
