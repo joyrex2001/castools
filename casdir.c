@@ -30,6 +30,7 @@ char BASIC[10] = { 0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3 };
 
 enum next {
   NEXT_NONE,
+  NEXT_ASCII,
   NEXT_BINARY,
   NEXT_DATA
 };
@@ -71,11 +72,9 @@ int main(int argc, char* argv[])
           if (fread(&buffer,1,10,ifile)==10) {
 	    if (!memcmp(&buffer,ASCII,10)) {
 	      
-	      fread(filename,1,6,ifile);
+	      fread(filename,1,6,ifile); next=NEXT_ASCII;
 	      printf("%.6s  ascii\n",filename);
-	      
-	      while (fgetc(ifile)!=0x1a && !feof(ifile));
-	      position=ftell(ifile);
+	      position += 16;
 	    } 
       
 	    else if (!memcmp(&buffer,BIN,10)) {
@@ -93,6 +92,14 @@ int main(int argc, char* argv[])
       
 	    else  printf("------  custom  %.6x\n",(int)position);
 	  }
+	  break;
+
+	case NEXT_ASCII:
+	  while (fread(&buffer,1,8,ifile) == 8 &&
+	         memchr(&buffer, 0x1a, 8) == NULL)
+	    position += 8;
+
+	  next = NEXT_NONE;
 	  break;
 
 	case NEXT_BINARY:
