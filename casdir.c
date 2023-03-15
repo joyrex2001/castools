@@ -63,6 +63,8 @@ int main(int argc, char* argv[])
   position=0;
   while (fread(&buffer,1,8,ifile)==8) {
     
+    position += 8;
+
     if (!memcmp(&buffer,HEADER,8)) {
       
       switch (next) {
@@ -90,7 +92,12 @@ int main(int argc, char* argv[])
 	      position += 16;
 	    }
       
-	    else  printf("------  custom  %.6x\n",(int)position);
+	    else {
+
+	      printf("------  custom  %.6x\n",(int)position-8);
+	      fseek(ifile, -2, SEEK_CUR);
+	      position += 8;
+	    }
 	  }
 	  break;
 
@@ -98,6 +105,7 @@ int main(int argc, char* argv[])
 	  while (fread(&buffer,1,8,ifile) == 8 &&
 	         memchr(&buffer, 0x1a, 8) == NULL)
 	    position += 8;
+	  position += 8;
 
 	  next = NEXT_NONE;
 	  break;
@@ -120,14 +128,7 @@ int main(int argc, char* argv[])
 	  next=NEXT_NONE;
 	  break;
       }
-
-      position += 8;
-    } else {
-      ++position;
     }
-	
-    fseek(ifile, position, SEEK_SET);
-      
   }
     
   fclose(ifile);
