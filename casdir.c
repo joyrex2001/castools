@@ -28,9 +28,12 @@ char ASCII[10] = { 0xEA,0xEA,0xEA,0xEA,0xEA,0xEA,0xEA,0xEA,0xEA,0xEA };
 char BIN[10]   = { 0xD0,0xD0,0xD0,0xD0,0xD0,0xD0,0xD0,0xD0,0xD0,0xD0 };
 char BASIC[10] = { 0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3,0xD3 };
 
-#define NEXT_NONE   0
-#define NEXT_BINARY 1
-#define NEXT_DATA   2
+enum next {
+  NEXT_NONE,
+  NEXT_ASCII,
+  NEXT_BINARY,
+  NEXT_DATA
+};
 
 int main(int argc, char* argv[])
 {
@@ -60,57 +63,72 @@ int main(int argc, char* argv[])
   position=0;
   while (fread(&buffer,1,8,ifile)==8) {
     
+    position += 8;
+
     if (!memcmp(&buffer,HEADER,8)) {
       
-      if (fread(&buffer,1,10,ifile)==10) {
-	
-        if (next==NEXT_BINARY) {
-	
-	  if (!buffer.binary_header.exec)
-            buffer.binary_header.exec=buffer.binary_header.start;
-	  
-	  printf("%.6s  binary  %.4x,%.4x,%.4x\n",filename,
-		  buffer.binary_header.start,
-		  buffer.binary_header.stop,
-		  buffer.binary_header.exec);
+      switch (next) {
+
+	case NEXT_NONE:
+	default:
+          if (fread(&buffer,1,10,ifile)==10) {
+	    if (!memcmp(&buffer,ASCII,10)) {
+	      
+	      fread(filename,1,6,ifile); next=NEXT_ASCII;
+	      printf("%.6s  ascii\n",filename);
+	      position += 16;
+	    } 
+      
+	    else if (!memcmp(&buffer,BIN,10)) {
+	      
+	      fread(filename,1,6,ifile); next=NEXT_BINARY;
+	      position += 16;
+	    }
+
+	    else if (!memcmp(&buffer,BASIC,10)) {
+	      
+	      fread(filename,1,6,ifile); next=NEXT_DATA;
+	      printf("%.6s  basic\n", filename);
+	      position += 16;
+	    }
+      
+	    else {
+
+	      printf("------  custom  %.6x\n",(int)position);
+	      fseek(ifile, -2, SEEK_CUR);
+	      position += 8;
+	    }
+	  }
+	  break;
+
+	case NEXT_ASCII:
+	  while (fread(&buffer,1,8,ifile) == 8 &&
+	         memchr(&buffer, 0x1a, 8) == NULL)
+	    position += 8;
+	  position += 8;
+
+	  next = NEXT_NONE;
+	  break;
+
+	case NEXT_BINARY:
+	  if (fread(&buffer,1,8,ifile)==8) {
+	    if (!buffer.binary_header.exec)
+	       buffer.binary_header.exec=buffer.binary_header.start;
+
+	    printf("%.6s  binary  %.4x,%.4x,%.4x\n",filename,
+	    		buffer.binary_header.start,
+	    		buffer.binary_header.stop,
+	    		buffer.binary_header.exec);
+	    position += 8;
+	    next=NEXT_NONE;
+	  }
+	  break;
+
+	case NEXT_DATA:
 	  next=NEXT_NONE;
-	}
-	  
-	else if (next==NEXT_DATA) next=NEXT_NONE;
-	
-	else if (!memcmp(&buffer,ASCII,10)) {
-	  
-	  fread(filename,1,6,ifile);
-	  printf("%.6s  ascii\n",filename);
-	  
-	  while (fgetc(ifile)!=0x1a && !feof(ifile));
-	  position=ftell(ifile);
-	} 
-      
-	else if (!memcmp(&buffer,BIN,10)) {
-	  
-	  fread(filename,1,6,ifile); next=NEXT_BINARY;
-	  position += 16;
-	}
-
-	else if (!memcmp(&buffer,BASIC,10)) {
-	  
-	  fread(filename,1,6,ifile); next=NEXT_DATA;
-	  printf("%.6s  basic\n", filename);
-	  position += 16;
-	}
-      
-	else  printf("------  custom  %.6x\n",(int)position);
-    
+	  break;
       }
-
-      position += 8;
-    } else {
-      ++position;
     }
-	
-    fseek(ifile, position, SEEK_SET);
-      
   }
     
   fclose(ifile);
