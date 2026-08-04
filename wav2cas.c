@@ -468,6 +468,25 @@ int main(int argc, char* argv[])
       /* write .cas header if none already written */
       if (!header) {
 
+	/* When the signal of a data block decays into silence, readByte()
+	   can occasionally decode one bogus trailing byte from the noise
+	   before isSilence() correctly detects the block has really ended
+	   (isSilence() only requires THRESHOLD_SILENCE consecutive quiet
+	   samples, so a single noisy sample can hide a false byte read).
+	   That leaves `written` exactly 1 past the previous block's true,
+	   8-byte-aligned length. Left alone, the alignment padding below
+	   would keep that bogus byte and merely pad after it, and a
+	   subsequent cas2wav run would re-encode it onto tape as a bogus
+	   extra byte, corrupting playback on real hardware. Since this
+	   specific off-by-one is the only misalignment this bug can cause,
+	   retract that one byte instead of padding around it. Any other
+	   misalignment (e.g. a BIN/BASIC header block, which is naturally
+	   22 bytes) is left to the normal padding below. */
+	if ((written&7)==1) {
+	  fseek(output,-1,SEEK_CUR);
+	  written--;
+	}
+
 	/* .cas headers always start at fixed positions */
 	for (;written&7;written++) putc(0x00,output);
 
